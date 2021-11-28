@@ -15,7 +15,7 @@ Release History
 - Remove conditional usage of `simplejson` module. Requests now solely relies
   on the Python 3+ `json` module for encoding and decoding.
 
-- Fix erroenous use of "Schema" instead of "Scheme" in InvalidSchema and
+- Fix erroneous use of "Schema" instead of "Scheme" in InvalidSchema and
   MissingSchema exceptions. Renamed to InvalidScheme and MissingScheme
   respectively. (#4495)
 
@@ -25,6 +25,15 @@ Release History
 - Remove ``Response.next`` attribute
 
 - Remove ``SessionRedirectMixin`` as it provides no purpose
+
+- When no ``timeout`` is specified for a request, Requests now uses Python's
+  default socket timeout (from ``socket.getdefaulttimeout()``) rather than
+  no timeout.
+
+- urllib3's ``Timeout`` is now imported into ``requests.adapters`` as ``Timeout``
+  instead of ``TimeoutSauce``.
+
+- Remove ``requests.adapters.DEFAULT_POOL_TIMEOUT``, which was unused.
 
 **Improvements**
 

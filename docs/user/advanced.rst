@@ -1054,8 +1054,10 @@ Timeouts
 --------
 
 Most requests to external servers should have a timeout attached, in case the
-server is not responding in a timely manner. By default, requests do not time
-out unless a timeout value is set explicitly. Without a timeout, your code may
+server is not responding in a timely manner. By default, requests time out after
+Python's `socket.getdefaulttimeout()
+<https://docs.python.org/3/library/socket.html#socket.getdefaulttimeout>`_,
+which defaults to no timeout unless modified. Without a timeout, your code may
 hang for minutes or more.
 
 The **connect** timeout is the number of seconds Requests will wait for your
