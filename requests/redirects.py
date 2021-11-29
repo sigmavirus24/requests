@@ -3,9 +3,9 @@ import enum
 import typing as t
 import urllib.parse
 
-from . import codes
 from . import models
 from . import utils
+from .status_codes import codes
 
 
 class Decision:

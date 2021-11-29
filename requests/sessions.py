@@ -612,7 +612,7 @@ class Session:
 
             # Rebuild auth and proxy information.
             proxies = self.rebuild_proxies(next_request, proxies)
-            self.rebuild_auth(next_request, resp)
+            self.rebuild_auth(next_request, resp, decision)
 
             # A failed tell() sets `_body_position` to `object()`. This non-None
             # value ensures `rewindable` will be True, allowing us to raise an

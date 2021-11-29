@@ -115,6 +115,7 @@ def test_redirecting_gets_correct_url(from_url, location_header, expected):
         ("https://example.com/login", "https://example.com:443/login", False),
         ("http://example.com/login", "http://example.com:80/login", False),
         ("http://example.com:80/login", "http://example.com/login", False),
+        ("https://example.com:443/login", "https://example.com/login", False),
         # Upgrade security from http -> https
         ("http://example.com:80/login", "https://example.com/login", False),
         ("http://example.com/login", "https://example.com/login", False),
@@ -124,13 +125,17 @@ def test_redirecting_gets_correct_url(from_url, location_header, expected):
             False,
         ),
         ("http://example.com/login", "https://example.com:443/login", False),
+        # upgraded security with nonstandard ports -- not trustworthy
+        ("http://example.com:8080/foo", "https://example.com/bar", True),
+        ("http://example.com/foo", "https://example.com:8443/bar", True),
+        ("http://example.com:1234/foo", "https://example.com:4321/bar", True),
         # different domain
         ("https://example.com/login", "//example.org/", True),
+        ("http://example.com/foo", "http://another.example.com/", True),
         # downgraded security (different scheme) but same domain
         ("https://example.com/login", "http://example.com/login", True),
         # different port, same scheme and domain - not trustworthy
         ("https://example.com/login", "https://example.com:8443/login", True),
-        ("https://example.com:443/login", "https://example.com/login", False),
     ],
 )
 def test_redirecting_knows_when_to_strip_auth(
