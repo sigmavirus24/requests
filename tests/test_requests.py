@@ -6,6 +6,7 @@ import json
 import os
 import pickle
 import re
+import socket
 import warnings
 
 import pytest
@@ -2387,6 +2388,18 @@ class TestTimeout:
             pytest.fail("The connect() request should time out.")
         except ConnectTimeout:
             pass
+
+    def test_default_timeout(self, httpbin):
+        # Confirm socket.getdefaulttimeout() is used if no timeout was specified
+        default_timeout = socket.getdefaulttimeout()
+        socket.setdefaulttimeout(0.1)
+        try:
+            requests.get(httpbin("delay/10"))
+            pytest.fail("The recv() request should time out.")
+        except ReadTimeout:
+            pass
+        finally:
+            socket.setdefaulttimeout(default_timeout)
 
     def test_encoded_methods(self, httpbin):
         """See: https://github.com/psf/requests/issues/2316"""

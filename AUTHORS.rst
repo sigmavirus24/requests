@@ -191,3 +191,4 @@ Patches and Suggestions
 - "Dull Bananas" <dull.bananas0@gmail.com> (`@dullbananas <https://github.com/dullbananas>`_)
 - Alessio Izzo (`@aless10 <https://github.com/aless10>`_)
 - Sylvain Marié (`@smarie <https://github.com/smarie>`_)
+- David Glick <david@glicksoftware.com> (`@davisagli <https://github.com/davisagli>`)

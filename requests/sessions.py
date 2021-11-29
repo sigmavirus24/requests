@@ -14,6 +14,7 @@ from datetime import timedelta
 
 from . import redirects
 from ._internal_utils import consume_response
+from .adapters import DEFAULT_TIMEOUT
 from .adapters import HTTPAdapter
 from .auth import _basic_auth_str
 from .compat import cookielib
@@ -255,7 +256,7 @@ class Session:
         cookies=None,
         files=None,
         auth=None,
-        timeout=None,
+        timeout=DEFAULT_TIMEOUT,
         allow_redirects=True,
         proxies=None,
         hooks=None,

@@ -23,7 +23,7 @@ from urllib3.poolmanager import PoolManager
 from urllib3.poolmanager import proxy_from_url
 from urllib3.response import HTTPResponse
 from urllib3.util import parse_url
-from urllib3.util import Timeout as TimeoutSauce
+from urllib3.util import Timeout
 from urllib3.util.retry import Retry
 
 from .auth import _basic_auth_str
@@ -60,7 +60,7 @@ except ImportError:
 DEFAULT_POOLBLOCK = False
 DEFAULT_POOLSIZE = 10
 DEFAULT_RETRIES = 0
-DEFAULT_POOL_TIMEOUT = None
+DEFAULT_TIMEOUT = Timeout.DEFAULT_TIMEOUT  # sentinel
 
 
 class BaseAdapter:
@@ -441,7 +441,7 @@ class HTTPAdapter(BaseAdapter):
         self,
         request,
         stream=False,
-        timeout=None,
+        timeout=DEFAULT_TIMEOUT,
         verify=True,
         cert=None,
         proxies=None,
@@ -485,7 +485,7 @@ class HTTPAdapter(BaseAdapter):
         if isinstance(timeout, tuple):
             try:
                 connect, read = timeout
-                timeout = TimeoutSauce(connect=connect, read=read)
+                timeout = Timeout(connect=connect, read=read)
             except ValueError:
                 # this may raise a string formatting error.
                 err = (
@@ -494,10 +494,10 @@ class HTTPAdapter(BaseAdapter):
                     f"both timeouts to the same value"
                 )
                 raise ValueError(err)
-        elif isinstance(timeout, TimeoutSauce):
+        elif isinstance(timeout, Timeout):
             pass
         else:
-            timeout = TimeoutSauce(connect=timeout, read=timeout)
+            timeout = Timeout(connect=timeout, read=timeout)
 
         try:
             resp = conn.urlopen(
