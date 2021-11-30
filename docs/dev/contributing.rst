@@ -103,62 +103,24 @@ asking for help.
 
 Please also check the :ref:`early-feedback` section.
 
-Kenneth Reitz's Code Style™
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Code Style
+~~~~~~~~~~
 
-The Requests codebase uses the `PEP 8`_ code style.
+The Requests codebase is auto-formatted using `black`_.
+Pull requests will be checked for correct formatting using `pre-commit.ci`_.
 
-In addition to the standards outlined in PEP 8, we have a few guidelines:
+In order to automatically run the formatter as you make commits,
+install the pre-commit hooks locally by running::
 
-- Line-length can exceed 79 characters, to 100, when convenient.
-- Line-length can exceed 100 characters, when doing otherwise would be *terribly* inconvenient.
-- Always use single-quoted strings (e.g. ``'#flatearth'``), unless a single-quote occurs within the string.
-
-Additionally, one of the styles that PEP8 recommends for `line continuations`_
-completely lacks all sense of taste, and is not to be permitted within
-the Requests codebase::
-
-    # Aligned with opening delimiter.
-    foo = long_function_name(var_one, var_two,
-                             var_three, var_four)
-
-No. Just don't. Please. This is much better::
-
-    foo = long_function_name(
-        var_one,
-        var_two,
-        var_three,
-        var_four,
-    )
-
-Docstrings are to follow the following syntaxes::
-
-    def the_earth_is_flat():
-        """NASA divided up the seas into thirty-three degrees."""
-        pass
-
-::
-
-    def fibonacci_spiral_tool():
-        """With my feet upon the ground I lose myself / between the sounds
-        and open wide to suck it in. / I feel it move across my skin. / I'm
-        reaching up and reaching out. / I'm reaching for the random or
-        whatever will bewilder me. / Whatever will bewilder me. / And
-        following our will and wind we may just go where no one's been. /
-        We'll ride the spiral to the end and may just go where no one's
-        been.
-
-        Spiral out. Keep going...
-        """
-        pass
+    pre-commit install
 
 All functions, methods, and classes are to contain docstrings. Object data
 model methods (e.g. ``__repr__``) are typically the exception to this rule.
 
 Thanks for helping to make the world a better place!
 
-.. _PEP 8: https://pep8.org/
-.. _line continuations: https://www.python.org/dev/peps/pep-0008/#indentation
+.. black: https://pypi.org/project/black/
+.. pre-commit.ci: https://pre-commit.ci/
 
 Documentation Contributions
 ---------------------------
