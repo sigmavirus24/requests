@@ -1,2 +1,7 @@
 [tool.black]
 line-length = 79
+
+[tool.pytest.ini_options]
+testpaths = "tests"
+addopts = "-p no:warnings --doctest-modules"
+doctest_optionflags = "NORMALIZE_WHITESPACE ELLIPSIS"

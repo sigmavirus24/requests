@@ -55,33 +55,36 @@ def test_digestauth_401_count_reset_on_redirect():
     auth = requests.auth.HTTPDigestAuth("user", "pass")
 
     def digest_response_handler(sock):
-        # Respond to initial GET with a challenge.
-        request_content = consume_socket_content(sock, timeout=0.5)
-        assert request_content.startswith(b"GET / HTTP/1.1")
-        sock.send(text_401)
-        print("*** Sent 401")
+        try:
+            # Respond to initial GET with a challenge.
+            request_content = consume_socket_content(sock, timeout=0.5)
+            assert request_content.startswith(b"GET / HTTP/1.1")
+            sock.send(text_401)
+            print("*** Sent 401")
 
-        # Verify we receive an Authorization header in response, then redirect.
-        request_content = consume_socket_content(sock, timeout=0.5)
-        assert expected_digest in request_content
-        sock.send(text_302)
-        print("*** Sent 302")
+            # Verify we receive an Authorization header in response, then redirect.
+            request_content = consume_socket_content(sock, timeout=0.5)
+            assert expected_digest in request_content
+            sock.send(text_302)
+            print("*** Sent 302")
 
-        # Verify Authorization isn't sent to the redirected host,
-        # then send another challenge.
-        request_content = consume_socket_content(sock, timeout=0.5)
-        print(request_content)
-        assert b"Authorization:" not in request_content
-        sock.send(text_401)
-        print("*** Sent another 401")
+            # Verify Authorization isn't sent to the redirected host,
+            # then send another challenge.
+            request_content = consume_socket_content(sock, timeout=0.5)
+            print(request_content)
+            assert b"Authorization:" not in request_content
+            sock.send(text_401)
+            print("*** Sent another 401")
 
-        # Verify Authorization is sent correctly again, and return 200 OK.
-        request_content = consume_socket_content(sock, timeout=0.5)
-        assert expected_digest in request_content
-        sock.send(text_200)
-        print("*** Sent 200")
+            # Verify Authorization is sent correctly again, and return 200 OK.
+            request_content = consume_socket_content(sock, timeout=0.5)
+            assert expected_digest in request_content
+            sock.send(text_200)
+            print("*** Sent 200")
 
-        return request_content
+            return request_content
+        except:
+            print("Exception in digest_response_handler")
 
     close_server = threading.Event()
     server = Server(digest_response_handler, wait_to_close_event=close_server)
