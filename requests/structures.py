@@ -4,13 +4,14 @@ requests.structures
 
 Data structures that power Requests.
 """
+import typing as t
 from collections import OrderedDict
+from collections.abc import MutableMapping
 
 from .compat import Mapping
-from .compat import MutableMapping
 
 
-class CaseInsensitiveDict(MutableMapping):
+class CaseInsensitiveDict(MutableMapping[str, str]):
     """A case-insensitive ``dict``-like object.
 
     Implements all methods and operations of
@@ -43,30 +44,30 @@ class CaseInsensitiveDict(MutableMapping):
             data = {}
         self.update(data, **kwargs)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: str):
         # Use the lowercased key for lookups, but store the actual
         # key alongside the value.
         self._store[key.lower()] = (key, value)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> str:
         return self._store[key.lower()][1]
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: str):
         del self._store[key.lower()]
 
-    def __iter__(self):
+    def __iter__(self) -> t.Iterator[t.Tuple[str, str]]:
         return (casedkey for casedkey, mappedvalue in self._store.values())
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._store)
 
-    def lower_items(self):
+    def lower_items(self) -> t.Iterator[t.Tuple[str, str]]:
         """Like iteritems(), but with all lowercase keys."""
         return (
             (lowerkey, keyval[1]) for (lowerkey, keyval) in self._store.items()
         )
 
-    def __eq__(self, other):
+    def __eq__(self, other: t.Any) -> bool:
         if isinstance(other, Mapping):
             other = CaseInsensitiveDict(other)
         else:
@@ -75,10 +76,10 @@ class CaseInsensitiveDict(MutableMapping):
         return dict(self.lower_items()) == dict(other.lower_items())
 
     # Copy is required
-    def copy(self):
+    def copy(self) -> "CaseInsensitiveDict":
         return CaseInsensitiveDict(self._store.values())
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(dict(self.items()))
 
 

@@ -17,6 +17,7 @@ requires = [
     'idna>=2.5,<4; python_version >= "3"',
     "urllib3>=1.21.1,<1.27",
     "certifi>=2017.4.17",
+    "attrs>=21.2.0",
 ]
 
 about = {}

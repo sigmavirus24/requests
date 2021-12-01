@@ -12,7 +12,10 @@ import typing as t
 from collections import OrderedDict
 from datetime import timedelta
 
+from . import auth as _auth
+from . import contexts
 from . import redirects
+from . import structures
 from ._internal_utils import consume_response
 from .adapters import DEFAULT_TIMEOUT
 from .adapters import HTTPAdapter
@@ -31,7 +34,6 @@ from .hooks import dispatch_hook
 from .models import DEFAULT_REDIRECT_LIMIT
 from .models import PreparedRequest
 from .models import Request
-from .structures import CaseInsensitiveDict
 from .utils import default_headers
 from .utils import get_auth_from_url
 from .utils import get_environ_proxies
@@ -41,6 +43,8 @@ from .utils import should_bypass_proxies
 from .utils import to_key_val_list
 
 if t.TYPE_CHECKING:
+    from .adapters import BaseAdapter
+    from .auth import AuthBase
     from .models import Response
 
 # formerly defined here, reexposed here for backward compatibility
@@ -136,23 +140,10 @@ class Session:
     ]
 
     def __init__(self):
-
-        #: A case-insensitive dictionary of headers to be sent on each
-        #: :class:`Request <Request>` sent from this
-        #: :class:`Session <Session>`.
-        self.headers = default_headers()
-
-        #: Default Authentication tuple or object to attach to
-        #: :class:`Request <Request>`.
-        self.auth = None
-
-        #: Dictionary mapping protocol or protocol and host to the URL of the proxy
-        #: (e.g. {'http': 'foo.bar:3128', 'http://host.name': 'foo.bar:4012'}) to
-        #: be used on each :class:`Request <Request>`.
-        self.proxies = {}
-
-        #: Event-handling hooks.
-        self.hooks = default_hooks()
+        self._context = contexts.SessionContext(
+            headers=default_headers(),
+            hooks=default_hooks(),
+        )
 
         #: Dictionary of querystring data to attach to each
         #: :class:`Request <Request>`. The dictionary values may be lists for
@@ -196,6 +187,38 @@ class Session:
         self.adapters = OrderedDict()
         self.mount("https://", HTTPAdapter())
         self.mount("http://", HTTPAdapter())
+
+    @property
+    def headers(self) -> structures.CaseInsensitiveDict:
+        return self._context.headers
+
+    @headers.setter
+    def headers(self, new_headers: structures.CaseInsensitiveDict):
+        self._context.headers = new_headers
+
+    @property
+    def auth(self) -> t.Optional[_auth.AuthBase]:
+        return self._context.auth
+
+    @auth.setter
+    def auth(self, new_auth: t.Optional[_auth.AuthBase]):
+        self._context.auth = new_auth
+
+    @property
+    def proxies(self) -> t.Dict[str, str]:
+        return self._context.proxies
+
+    @proxies.setter
+    def proxies(self, new_proxies: t.Dict[str, str]):
+        self._context.proxies = new_proxies
+
+    @property
+    def hooks(self) -> t.Dict[str, t.Any]:
+        return self._context.hooks
+
+    @hooks.setter
+    def hooks(self, new_hooks: t.Dict[str, t.Any]):
+        self._context.hooks = new_hooks
 
     def __enter__(self):
         return self
