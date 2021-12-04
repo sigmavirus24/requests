@@ -46,12 +46,13 @@ class RequestContext:
         self, request_options: t.Dict[str, t.Any]
     ) -> "RequestContext":
         def _opt(key: str) -> t.Any:
-            session_default = getattr(self, key, _SENTINEL)
-            if session_default is _SENTINEL:
+            default = getattr(self, key, _SENTINEL)
+            if default is _SENTINEL:
                 return request_options.get(key, _NOT_PROVIDED)
-            return request_options.get(key, session_default)
+            return request_options.get(key, default)
 
         return RequestContext(
+            # TODO: Handle the rest of the attributes
             headers=_opt("headers"),
             cookies=_opt("cookies"),
             auth=_opt("auth"),
@@ -98,16 +99,50 @@ class SessionContext:
     def create_request_context(
         self, request_options: t.Dict[str, t.Any]
     ) -> RequestContext:
-        def _opt(key: str) -> t.Any:
+        def _opt(key: str, *, merge: bool = False) -> t.Any:
             session_default = getattr(self, key, _SENTINEL)
             if session_default is _SENTINEL:
                 return request_options.get(key, _NOT_PROVIDED)
-            return request_options.get(key, session_default)
+
+            request_val = request_options.get(key, _SENTINEL)
+            if request_val is _SENTINEL:
+                return session_default
+
+            if merge:
+                return_val = session_default.copy()
+                return_val.update(request_val)
+                return return_val
+            return request_val
 
         return RequestContext(
-            headers=_opt("headers"),
+            # TODO: Handle the rest of the attributes
+            headers=_opt("headers", merge=True),
             cookies=_opt("cookies"),
             auth=_opt("auth"),
-            proxies=_opt("proxies"),
-            params=_opt("params"),
+            proxies=_opt("proxies", merge=True),
+            params=_opt("params", merge=True),
         )
+
+
+T = t.TypeVar("T")
+
+
+class _ProxyAttribute(t.Generic[T]):
+    def __init__(self, *, context_attr: str):
+        self.context_attr = context_attr
+        self.attr_name = None
+
+    def __set_name__(self, owner: T, name: str):
+        self.attr_name = name
+
+    def __get__(self, obj: T, objtype: type = None) -> t.Any:
+        ctx = getattr(obj, self.context_attr)
+        return getattr(ctx, self.attr_name)
+
+    def __set__(self, obj: T, value: t.Any) -> None:
+        ctx = getattr(obj, self.context_attr)
+        setattr(ctx, self.attr_name, value)
+
+
+def proxy_attribute(*, context_attr: str = "_ctx") -> _ProxyAttribute:
+    return _ProxyAttribute(context_attr=context_attr)

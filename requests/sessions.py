@@ -139,87 +139,48 @@ class Session:
         "max_redirects",
     ]
 
+    headers = contexts.proxy_attribute()
+    auth = contexts.proxy_attribute()
+    proxies = contexts.proxy_attribute()
+    hooks = contexts.proxy_attribute()
+    params = contexts.proxy_attribute()
+    stream = contexts.proxy_attribute()
+    #: SSL Verification default.
+    #: Defaults to `True`, requiring requests to verify the TLS certificate at the
+    #: remote end.
+    #: If verify is set to `False`, requests will accept any TLS certificate
+    #: presented by the server, and will ignore hostname mismatches and/or
+    #: expired certificates, which will make your application vulnerable to
+    #: man-in-the-middle (MitM) attacks.
+    #: Only set this to `False` for testing.
+    verify = contexts.proxy_attribute()
+    #: SSL client certificate default, if String, path to ssl client
+    #: cert file (.pem). If Tuple, ('cert', 'key') pair.
+    cert = contexts.proxy_attribute()
+    #: Maximum number of redirects allowed. If the request exceeds this
+    #: limit, a :class:`TooManyRedirects` exception is raised.
+    #: This defaults to requests.models.DEFAULT_REDIRECT_LIMIT, which is
+    #: 30.
+    max_redirects = contexts.proxy_attribute()
+    #: Trust environment settings for proxy configuration, default
+    #: authentication and similar.
+    trust_env = contexts.proxy_attribute()
+    #: A CookieJar containing all currently outstanding cookies set on this
+    #: session. By default it is a
+    #: :class:`RequestsCookieJar <requests.cookies.RequestsCookieJar>`, but
+    #: may be any other ``cookielib.CookieJar`` compatible object.
+    cookies = contexts.proxy_attribute()
+    adapters = contexts.proxy_attribute()
+
     def __init__(self):
-        self._context = contexts.SessionContext(
+        self._ctx = contexts.SessionContext(
             headers=default_headers(),
             hooks=default_hooks(),
         )
-
-        #: Dictionary of querystring data to attach to each
-        #: :class:`Request <Request>`. The dictionary values may be lists for
-        #: representing multivalued query parameters.
-        self.params = {}
-
-        #: Stream response content default.
-        self.stream = False
-
-        #: SSL Verification default.
-        #: Defaults to `True`, requiring requests to verify the TLS certificate at the
-        #: remote end.
-        #: If verify is set to `False`, requests will accept any TLS certificate
-        #: presented by the server, and will ignore hostname mismatches and/or
-        #: expired certificates, which will make your application vulnerable to
-        #: man-in-the-middle (MitM) attacks.
-        #: Only set this to `False` for testing.
-        self.verify = True
-
-        #: SSL client certificate default, if String, path to ssl client
-        #: cert file (.pem). If Tuple, ('cert', 'key') pair.
-        self.cert = None
-
-        #: Maximum number of redirects allowed. If the request exceeds this
-        #: limit, a :class:`TooManyRedirects` exception is raised.
-        #: This defaults to requests.models.DEFAULT_REDIRECT_LIMIT, which is
-        #: 30.
-        self.max_redirects = DEFAULT_REDIRECT_LIMIT
-
-        #: Trust environment settings for proxy configuration, default
-        #: authentication and similar.
-        self.trust_env = True
-
-        #: A CookieJar containing all currently outstanding cookies set on this
-        #: session. By default it is a
-        #: :class:`RequestsCookieJar <requests.cookies.RequestsCookieJar>`, but
-        #: may be any other ``cookielib.CookieJar`` compatible object.
-        self.cookies = cookiejar_from_dict({})
-
-        # Default connection adapters.
-        self.adapters = OrderedDict()
         self.mount("https://", HTTPAdapter())
         self.mount("http://", HTTPAdapter())
 
     @property
-    def headers(self) -> structures.CaseInsensitiveDict:
-        return self._context.headers
-
-    @headers.setter
-    def headers(self, new_headers: structures.CaseInsensitiveDict):
-        self._context.headers = new_headers
-
-    @property
-    def auth(self) -> t.Optional[_auth.AuthBase]:
-        return self._context.auth
-
-    @auth.setter
-    def auth(self, new_auth: t.Optional[_auth.AuthBase]):
-        self._context.auth = new_auth
-
-    @property
-    def proxies(self) -> t.Dict[str, str]:
-        return self._context.proxies
-
-    @proxies.setter
-    def proxies(self, new_proxies: t.Dict[str, str]):
-        self._context.proxies = new_proxies
-
-    @property
-    def hooks(self) -> t.Dict[str, t.Any]:
-        return self._context.hooks
-
-    @hooks.setter
-    def hooks(self, new_hooks: t.Dict[str, t.Any]):
-        self._context.hooks = new_hooks
-
     def __enter__(self):
         return self
 
@@ -260,7 +221,9 @@ class Session:
             data=request.data,
             json=request.json,
             headers=merge_setting(
-                request.headers, self.headers, dict_class=CaseInsensitiveDict
+                request.headers,
+                self.headers,
+                dict_class=structures.CaseInsensitiveDict,
             ),
             params=merge_setting(request.params, self.params),
             auth=merge_setting(auth, self.auth),
@@ -329,6 +292,20 @@ class Session:
             If Tuple, ('cert', 'key') pair.
         :rtype: requests.Response
         """
+        request_ctx = self._ctx.create_request_context(
+            {
+                "allow_redirects": allow_redirects,
+                "auth": auth,
+                "cert": cert,
+                "cookies": cookies,
+                "headers": headers,
+                "hooks": hooks,
+                "params": params,
+                "proxies": proxies,
+                "stream": stream,
+                "timeout": timeout,
+            }
+        )
         # Create the Request.
         req = Request(
             method=method.upper(),
