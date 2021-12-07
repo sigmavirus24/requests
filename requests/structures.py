@@ -7,10 +7,9 @@ Data structures that power Requests.
 import typing as t
 from collections import OrderedDict
 from collections.abc import Mapping
-from collections.abc import MutableMapping
 
 
-class CaseInsensitiveDict(MutableMapping[str, str]):
+class CaseInsensitiveDict(t.MutableMapping[str, str]):
     """A case-insensitive ``dict``-like object.
 
     Implements all methods and operations of
