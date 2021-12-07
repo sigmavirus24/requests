@@ -7,4 +7,6 @@ except ImportError:
 
 
 def u(s):
+    if isinstance(s, str):
+        return s
     return s.decode("unicode-escape")

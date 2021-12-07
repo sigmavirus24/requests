@@ -402,7 +402,7 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
             raise UnicodeError
         return host
 
-    def prepare_url(self, url: t.AnyStr, params: Mapping[str, str]):
+    def prepare_url(self, url: t.AnyStr, params: t.Mapping[str, str]):
         """Prepares the given HTTP URL."""
         #: Accept objects that have string representations.
         #: We're unable to blindly call unicode/str functions

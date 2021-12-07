@@ -8,6 +8,11 @@ import pickle
 import re
 import socket
 import warnings
+from collections.abc import MutableMapping
+from http import cookiejar as cookielib
+from http.cookies import Morsel
+from urllib.parse import urlparse
+from urllib.request import getproxies
 
 import pytest
 from urllib3.util import Timeout as Urllib3Timeout
@@ -19,13 +24,6 @@ from .utils import override_environ
 from requests.adapters import HTTPAdapter
 from requests.auth import _basic_auth_str
 from requests.auth import HTTPDigestAuth
-from requests.compat import builtin_str
-from requests.compat import cookielib
-from requests.compat import getproxies
-from requests.compat import Morsel
-from requests.compat import MutableMapping
-from requests.compat import str
-from requests.compat import urlparse
 from requests.cookies import cookiejar_from_dict
 from requests.cookies import morsel_to_cookie
 from requests.exceptions import ConnectionError
@@ -1066,7 +1064,7 @@ class TestRequests:
         s = requests.Session()
         req = requests.Request(u("POST"), httpbin("post"), files=files)
         prep = s.prepare_request(req)
-        assert isinstance(prep.method, builtin_str)
+        assert isinstance(prep.method, str)
         assert prep.method == "POST"
 
         resp = s.send(prep)
@@ -1930,7 +1928,7 @@ class TestRequests:
         self, username, password, auth_str
     ):
         s = _basic_auth_str(username, password)
-        assert isinstance(s, builtin_str)
+        assert isinstance(s, str)
         assert s == auth_str
 
     def test_requests_history_is_saved(self, httpbin):

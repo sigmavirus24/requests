@@ -1,6 +1,8 @@
 import copy
 import filecmp
+import http.cookiejar
 import os
+import urllib.parse
 import zipfile
 from collections import deque
 from io import BytesIO
@@ -9,7 +11,6 @@ import pytest
 
 from .compat import cStringIO
 from .compat import StringIO
-from requests import compat
 from requests._internal_utils import unicode_is_ascii
 from requests.cookies import RequestsCookieJar
 from requests.structures import CaseInsensitiveDict
@@ -285,7 +286,7 @@ class TestGuessFilename:
 
     @pytest.mark.parametrize(
         "value, expected_type",
-        ((b"value", compat.bytes), (b"value".decode("utf-8"), compat.str)),
+        ((b"value", bytes), (b"value".decode("utf-8"), str)),
     )
     def test_guess_filename_valid(self, value, expected_type):
         obj = type("Fake", (object,), {"name": value})()
@@ -393,8 +394,8 @@ class TestGuessJSONUTF:
 
 
 USER = PASSWORD = "%!*'();:@&=+$,/?#[] "
-ENCODED_USER = compat.quote(USER, "")
-ENCODED_PASSWORD = compat.quote(PASSWORD, "")
+ENCODED_USER = urllib.parse.quote(USER, "")
+ENCODED_PASSWORD = urllib.parse.quote(PASSWORD, "")
 
 
 @pytest.mark.parametrize(
@@ -762,7 +763,7 @@ def test_should_bypass_proxies_pass_only_hostname(url, expected, mocker):
 
 
 @pytest.mark.parametrize(
-    "cookiejar", (compat.cookielib.CookieJar(), RequestsCookieJar())
+    "cookiejar", (http.cookiejar.CookieJar(), RequestsCookieJar())
 )
 def test_add_dict_to_cookiejar(cookiejar):
     """Ensure add_dict_to_cookiejar works for
@@ -832,10 +833,7 @@ def test_should_bypass_proxies_win_registry(
     """
     if override is None:
         override = "192.168.*;127.0.0.1;localhost.localdomain;172.16.1.1"
-    if compat.is_py3:
-        import winreg
-    else:
-        import _winreg as winreg
+    import winreg
 
     class RegHandle:
         def Close(self):
