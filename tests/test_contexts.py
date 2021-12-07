@@ -1,7 +1,6 @@
 import attr
 import pytest
 
-from requests import adapters
 from requests import auth
 from requests import contexts
 
@@ -23,10 +22,6 @@ def test_default_request_context() -> None:
 def test_session_context_with_validation() -> None:
     try:
         contexts.SessionContext(
-            adapters={
-                "http://": adapters.HTTPAdapter(),
-                "https://": adapters.HTTPAdapter(),
-            },
             auth=auth.HTTPBasicAuth("username", "password"),
         )
     except Exception as e:
@@ -35,10 +30,6 @@ def test_session_context_with_validation() -> None:
 
 def test_create_request_context_from_session_context() -> None:
     sc = contexts.SessionContext(
-        adapters={
-            "http://": adapters.HTTPAdapter(),
-            "https://": adapters.HTTPAdapter(),
-        },
         auth=auth.HTTPBasicAuth("username", "password"),
     )
     rc = sc.create_request_context(
@@ -55,10 +46,6 @@ def test_create_request_context_from_session_context() -> None:
 
 def test_create_request_context_from_session_context_merges_headers() -> None:
     sc = contexts.SessionContext(
-        adapters={
-            "http://": adapters.HTTPAdapter(),
-            "https://": adapters.HTTPAdapter(),
-        },
         headers={
             "X-Custom-Header": "Default-Value",
             "X-Other-Header": "Unmodified",

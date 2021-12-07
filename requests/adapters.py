@@ -5,9 +5,12 @@ requests.adapters
 This module contains the transport adapters that Requests uses to define
 and maintain connections.
 """
+import collections
 import os.path
 import socket
+import typing as t
 
+import attr
 from urllib3.exceptions import ClosedPoolError
 from urllib3.exceptions import ConnectTimeoutError
 from urllib3.exceptions import HTTPError as _HTTPError
@@ -26,6 +29,7 @@ from urllib3.util import parse_url
 from urllib3.util import Timeout
 from urllib3.util.retry import Retry
 
+from . import structures
 from .auth import _basic_auth_str
 from .compat import basestring
 from .compat import urlparse
@@ -40,7 +44,6 @@ from .exceptions import ReadTimeout
 from .exceptions import RetryError
 from .exceptions import SSLError
 from .models import Response
-from .structures import CaseInsensitiveDict
 from .utils import DEFAULT_CA_BUNDLE_PATH
 from .utils import extract_zipped_paths
 from .utils import get_auth_from_url
@@ -311,7 +314,9 @@ class HTTPAdapter(BaseAdapter):
         response.status_code = getattr(resp, "status", None)
 
         # Make headers case-insensitive.
-        response.headers = CaseInsensitiveDict(getattr(resp, "headers", {}))
+        response.headers = structures.CaseInsensitiveDict(
+            getattr(resp, "headers", {})
+        )
 
         # Set encoding.
         response.encoding = get_encoding_from_headers(response.headers)
@@ -550,3 +555,75 @@ class HTTPAdapter(BaseAdapter):
                 raise
 
         return self.build_response(request, resp)
+
+
+@attr.define(getstate_setstate=True)
+class Manager:
+    adapters: t.MutableMapping[str, BaseAdapter] = attr.field(
+        factory=dict, converter=dict
+    )
+    prefixes: t.List[str] = attr.field(factory=list)
+
+    @adapters.validator
+    def _validate_adapters(self, attribute, value):
+        for adapter in value.values():
+            if not isinstance(adapter, BaseAdapter):
+                raise ValueError(
+                    "adapters must inherit from requests.adapters.BaseAdapter"
+                )
+
+    def find(self, url: str) -> BaseAdapter:
+        """Find adapter that applies to a given URL."""
+        url = url.lower()
+        for prefix in self.prefixes:
+            if url.startswith(prefix):
+                return self.adapters[prefix]
+        raise _NoMatchingAdapterError()
+
+    def register(self, prefix: str, adapter: BaseAdapter):
+        """Register a transport adapter to a given prefix.
+
+        Adapters will be sorted in descending order by prefix length.
+
+        Conflicts will only use the newest value.
+        """
+        if not isinstance(adapter, BaseAdapter):
+            raise ValueError(
+                "adapters must inherit from requests.adapters.BaseAdapter",
+                adapter,
+            )
+
+        prefix = prefix.lower()
+        self.adapters[prefix] = adapter
+
+        for i, p in enumerate(self.prefixes):
+            if p == prefix:
+                break
+            if len(p) < len(prefix):
+                self.prefixes.insert(i, prefix)
+                break
+        else:
+            self.prefixes.append(prefix)
+
+    def remove(self, prefix: str) -> None:
+        """Remove the adapter registered to the given prefix."""
+        try:
+            del self.adapters[prefix]
+        except KeyError:
+            pass
+
+        try:
+            self.prefixes.remove(prefix)
+        except ValueError:
+            pass
+
+        return
+
+    def close(self):
+        """Closes all adapters and discards connection smanaged by them."""
+        for adapter in self.adapters.values():
+            adapter.close()
+
+
+class _NoMatchingAdapterError(Exception):
+    pass

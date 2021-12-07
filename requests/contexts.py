@@ -65,9 +65,6 @@ class RequestContext:
 class SessionContext:
     """Context used to contain the session parameters applied to each request."""
 
-    adapters: collections.OrderedDict[str, _adapters.BaseAdapter] = attr.field(
-        factory=collections.OrderedDict, converter=collections.OrderedDict
-    )
     auth: t.Optional[_auth.AuthBase] = attr.field(
         validator=attr.validators.optional(
             attr.validators.instance_of(_auth.AuthBase)
@@ -87,14 +84,6 @@ class SessionContext:
     stream: bool = attr.field(default=False)
     trust_env: bool = attr.field(default=True)
     verify: t.Union[bool, str] = attr.field(default=True)
-
-    @adapters.validator
-    def _validate_adapters(self, attribute, value):
-        for adapter in value.values():
-            if not isinstance(adapter, _adapters.BaseAdapter):
-                raise ValueError(
-                    "adapters must inherit from requests.adapters.BaseAdapter"
-                )
 
     def create_request_context(
         self, request_options: t.Dict[str, t.Any]

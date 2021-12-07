@@ -9,17 +9,16 @@ import os
 import sys
 import time
 import typing as t
+import warnings
 from collections import OrderedDict
 from datetime import timedelta
 
+from . import adapters as _adapters
 from . import auth as _auth
 from . import contexts
 from . import redirects
 from . import structures
 from ._internal_utils import consume_response
-from .adapters import DEFAULT_TIMEOUT
-from .adapters import HTTPAdapter
-from .auth import _basic_auth_str
 from .compat import cookielib
 from .compat import Mapping
 from .compat import urlparse
@@ -31,7 +30,6 @@ from .exceptions import InvalidScheme
 from .exceptions import TooManyRedirects
 from .hooks import default_hooks
 from .hooks import dispatch_hook
-from .models import DEFAULT_REDIRECT_LIMIT
 from .models import PreparedRequest
 from .models import Request
 from .utils import default_headers
@@ -43,7 +41,6 @@ from .utils import should_bypass_proxies
 from .utils import to_key_val_list
 
 if t.TYPE_CHECKING:
-    from .adapters import BaseAdapter
     from .auth import AuthBase
     from .models import Response
 
@@ -133,7 +130,7 @@ class Session:
         "params",
         "verify",
         "cert",
-        "adapters",
+        "_adapter_mgr",
         "stream",
         "trust_env",
         "max_redirects",
@@ -170,22 +167,29 @@ class Session:
     #: :class:`RequestsCookieJar <requests.cookies.RequestsCookieJar>`, but
     #: may be any other ``cookielib.CookieJar`` compatible object.
     cookies = contexts.proxy_attribute()
-    adapters = contexts.proxy_attribute()
 
     def __init__(self):
         self._ctx = contexts.SessionContext(
             headers=default_headers(),
             hooks=default_hooks(),
         )
-        self.mount("https://", HTTPAdapter())
-        self.mount("http://", HTTPAdapter())
+        self._adapter_mgr = _adapters.Manager()
+        self._adapter_mgr.register("https://", _adapters.HTTPAdapter())
+        self._adapter_mgr.register("http://", _adapters.HTTPAdapter())
 
-    @property
     def __enter__(self):
         return self
 
     def __exit__(self, *args):
         self.close()
+
+    @property
+    def adapters(self) -> t.MutableMapping[str, _adapters.BaseAdapter]:
+        warnings.warn(
+            "Session.adapters is deprecated for removal in 2023",
+            DeprecationWarning,
+        )
+        return self._adapter_mgr.adapters
 
     def prepare_request(self, request):
         """Constructs a :class:`PreparedRequest <PreparedRequest>` for
@@ -242,7 +246,7 @@ class Session:
         cookies=None,
         files=None,
         auth=None,
-        timeout=DEFAULT_TIMEOUT,
+        timeout=_adapters.DEFAULT_TIMEOUT,
         allow_redirects=True,
         proxies=None,
         hooks=None,
@@ -306,6 +310,7 @@ class Session:
                 "timeout": timeout,
             }
         )
+        request_ctx.copy()
         # Create the Request.
         req = Request(
             method=method.upper(),
@@ -527,29 +532,30 @@ class Session:
 
         :rtype: requests.adapters.BaseAdapter
         """
-        for (prefix, adapter) in self.adapters.items():
-
-            if url.lower().startswith(prefix.lower()):
-                return adapter
-
-        # Nothing matches :-/
-        raise InvalidScheme(f"No connection adapters were found for {url!r}")
+        try:
+            adapter = self._adapter_mgr.find(url)
+        except adapters._NoMatchingAdapterError:
+            # Nothing matches :-/
+            raise InvalidScheme(
+                f"No connection adapters were found for {url!r}"
+            )
+        return adapter
 
     def close(self):
         """Closes all adapters and as such the session"""
-        for v in self.adapters.values():
-            v.close()
+        self._adapter_mgr.close()
 
-    def mount(self, prefix, adapter):
-        """Registers a connection adapter to a prefix.
+    def mount(self, prefix: str, adapter: _adapters.BaseAdapter) -> None:
+        """Registers a transport adapter to a prefix.
 
-        Adapters are sorted in descending order by prefix length.
+        :raises ValueError:
+            If the adapter does not inherit from requests.adapters.BaseAdapter
         """
-        self.adapters[prefix] = adapter
-        keys_to_move = [k for k in self.adapters if len(k) < len(prefix)]
+        self._adapters_mgr.register(prefix, adapter)
 
-        for key in keys_to_move:
-            self.adapters[key] = self.adapters.pop(key)
+    def unmount(self, prefix: str) -> None:
+        """Removes a registered transport adapter at the given prefix."""
+        self._adapters_mgr.remove(prefix)
 
     def __getstate__(self):
         state = {attr: getattr(self, attr, None) for attr in self.__attrs__}
@@ -710,7 +716,7 @@ class Session:
             username, password = None, None
 
         if username and password:
-            headers["Proxy-Authorization"] = _basic_auth_str(
+            headers["Proxy-Authorization"] = _auth._basic_auth_str(
                 username, password
             )
 
