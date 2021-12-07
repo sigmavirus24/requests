@@ -9,6 +9,7 @@ import collections
 import os.path
 import socket
 import typing as t
+from urllib.parse import urlparse
 
 import attr
 from urllib3.exceptions import ClosedPoolError
@@ -31,8 +32,6 @@ from urllib3.util.retry import Retry
 
 from . import structures
 from .auth import _basic_auth_str
-from .compat import basestring
-from .compat import urlparse
 from .cookies import extract_cookies_to_jar
 from .exceptions import ConnectionError
 from .exceptions import ConnectTimeout
@@ -281,7 +280,7 @@ class HTTPAdapter(BaseAdapter):
             conn.ca_cert_dir = None
 
         if cert:
-            if not isinstance(cert, basestring):
+            if not isinstance(cert, (bytes, str)):
                 conn.cert_file = cert[0]
                 conn.key_file = cert[1]
             else:

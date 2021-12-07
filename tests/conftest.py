@@ -8,9 +8,9 @@ except ImportError:
 import ssl
 import tempfile
 import threading
+from urllib.parse import urljoin
 
 import pytest
-from requests.compat import urljoin
 import trustme
 
 

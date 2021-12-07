@@ -11,7 +11,10 @@ import time
 import typing as t
 import warnings
 from collections import OrderedDict
+from collections.abc import Mapping
 from datetime import timedelta
+from http import cookiejar as cookielib
+from urllib.parse import urlparse
 
 from . import adapters as _adapters
 from . import auth as _auth
@@ -19,9 +22,6 @@ from . import contexts
 from . import redirects
 from . import structures
 from ._internal_utils import consume_response
-from .compat import cookielib
-from .compat import Mapping
-from .compat import urlparse
 from .cookies import cookiejar_from_dict
 from .cookies import extract_cookies_to_jar
 from .cookies import merge_cookies

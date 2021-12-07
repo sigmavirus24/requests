@@ -17,27 +17,21 @@ import tempfile
 import warnings
 import zipfile
 from collections import OrderedDict
+from collections.abc import Mapping
+from urllib.parse import quote
+from urllib.parse import unquote
+from urllib.parse import urlparse
+from urllib.parse import urlunparse
+from urllib.request import getproxies_environment
+from urllib.request import parse_http_list as _parse_list_header
+from urllib.request import proxy_bypass
+from urllib.request import proxy_bypass_environment
 
 from urllib3.util import make_headers
 
 from . import certs
 from .__version__ import __version__
 from ._internal_utils import to_native_string
-from .compat import basestring
-from .compat import bytes
-from .compat import getproxies
-from .compat import getproxies_environment
-from .compat import integer_types
-from .compat import is_py3
-from .compat import Mapping
-from .compat import parse_http_list as _parse_list_header
-from .compat import proxy_bypass
-from .compat import proxy_bypass_environment
-from .compat import quote
-from .compat import str
-from .compat import unquote
-from .compat import urlparse
-from .compat import urlunparse
 from .cookies import cookiejar_from_dict
 from .exceptions import ChunkedEncodingError
 from .exceptions import ContentDecodingError
@@ -66,10 +60,7 @@ if sys.platform == "win32":
 
     def proxy_bypass_registry(host):
         try:
-            if is_py3:
-                import winreg
-            else:
-                import _winreg as winreg
+            import winreg
         except ImportError:
             return False
 
@@ -248,12 +239,12 @@ def get_netrc_auth(url, raise_errors=False):
         pass
 
 
-def guess_filename(obj):
+def guess_filename(obj: t.Any):
     """Tries to guess the filename of the given object."""
     name = getattr(obj, "name", None)
     if (
         name
-        and isinstance(name, basestring)
+        and isinstance(name, (bytes, str))
         and name[0] != "<"
         and name[-1] != ">"
     ):
@@ -1051,7 +1042,7 @@ def rewind_body(prepared_request):
     """
     body_seek = getattr(prepared_request.body, "seek", None)
     if body_seek is not None and isinstance(
-        prepared_request._body_position, integer_types
+        prepared_request._body_position, int
     ):
         try:
             body_seek(prepared_request._body_position)

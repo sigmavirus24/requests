@@ -5,10 +5,16 @@ requests.models
 This module contains the primary objects that power Requests.
 """
 import datetime
-import encodings.idna
+import encodings.idna  # noqa: F401
 import json as json_
-import sys
+import typing as t
+from collections.abc import Callable
+from collections.abc import Mapping
+from http import cookiejar as cookielib
 from io import UnsupportedOperation
+from urllib.parse import urlencode
+from urllib.parse import urlsplit
+from urllib.parse import urlunparse
 
 from urllib3.exceptions import DecodeError
 from urllib3.exceptions import LocationParseError
@@ -21,18 +27,7 @@ from urllib3.util import parse_url
 from ._internal_utils import to_native_string
 from ._internal_utils import unicode_is_ascii
 from .auth import HTTPBasicAuth
-from .compat import basestring
-from .compat import builtin_str
-from .compat import bytes
-from .compat import Callable
 from .compat import chardet
-from .compat import cookielib
-from .compat import is_py2
-from .compat import Mapping
-from .compat import str
-from .compat import urlencode
-from .compat import urlsplit
-from .compat import urlunparse
 from .cookies import _copy_cookie_jar
 from .cookies import cookiejar_from_dict
 from .cookies import get_cookie_header
@@ -115,7 +110,7 @@ class RequestEncodingMixin:
         elif hasattr(data, "__iter__"):
             result = []
             for k, vs in to_key_val_list(data):
-                if isinstance(vs, basestring) or not hasattr(vs, "__iter__"):
+                if isinstance(vs, (bytes, str)) or not hasattr(vs, "__iter__"):
                     vs = [vs]
                 for v in vs:
                     if v is not None:
@@ -141,7 +136,7 @@ class RequestEncodingMixin:
         """
         if not files:
             raise ValueError("Files must be provided.")
-        elif isinstance(data, basestring):
+        elif isinstance(data, (bytes, str)):
             raise ValueError("Data must not be a string.")
 
         new_fields = []
@@ -149,7 +144,7 @@ class RequestEncodingMixin:
         files = to_key_val_list(files or {})
 
         for field, val in fields:
-            if isinstance(val, basestring) or not hasattr(val, "__iter__"):
+            if isinstance(val, (bytes, str)) or not hasattr(val, "__iter__"):
                 val = [val]
             for v in val:
                 if v is not None:
@@ -407,7 +402,7 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
             raise UnicodeError
         return host
 
-    def prepare_url(self, url, params):
+    def prepare_url(self, url: t.AnyStr, params: Mapping[str, str]):
         """Prepares the given HTTP URL."""
         #: Accept objects that have string representations.
         #: We're unable to blindly call unicode/str functions
@@ -417,7 +412,7 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
         if isinstance(url, bytes):
             url = url.decode("utf8")
         else:
-            url = unicode(url) if is_py2 else str(url)
+            url = str(url)
 
         # Remove leading whitespaces from url
         url = url.lstrip()
@@ -468,18 +463,6 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
         # Bare domains aren't valid URLs.
         if not path:
             path = "/"
-
-        if is_py2:
-            if isinstance(scheme, str):
-                scheme = scheme.encode("utf-8")
-            if isinstance(netloc, str):
-                netloc = netloc.encode("utf-8")
-            if isinstance(path, str):
-                path = path.encode("utf-8")
-            if isinstance(query, str):
-                query = query.encode("utf-8")
-            if isinstance(fragment, str):
-                fragment = fragment.encode("utf-8")
 
         if isinstance(params, (str, bytes)):
             params = to_native_string(params)
@@ -533,7 +516,7 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
         is_stream = all(
             [
                 hasattr(data, "__iter__"),
-                not isinstance(data, (basestring, list, tuple, Mapping)),
+                not isinstance(data, (bytes, str, list, tuple, Mapping)),
             ]
         )
 
@@ -562,7 +545,7 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
                 )
 
             if length:
-                self.headers["Content-Length"] = builtin_str(length)
+                self.headers["Content-Length"] = str(length)
             else:
                 self.headers["Transfer-Encoding"] = "chunked"
         else:
@@ -572,7 +555,7 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
             else:
                 if data:
                     body = self._encode_params(data)
-                    if isinstance(data, basestring) or hasattr(data, "read"):
+                    if isinstance(data, (bytes, str)) or hasattr(data, "read"):
                         content_type = None
                     else:
                         content_type = "application/x-www-form-urlencoded"
@@ -592,7 +575,7 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
             if length:
                 # If length exists, set it. Otherwise, we fallback
                 # to Transfer-Encoding: chunked.
-                self.headers["Content-Length"] = builtin_str(length)
+                self.headers["Content-Length"] = str(length)
         elif (
             self.method not in ("GET", "HEAD")
             and self.headers.get("Content-Length") is None

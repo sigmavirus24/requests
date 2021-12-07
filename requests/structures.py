@@ -6,9 +6,8 @@ Data structures that power Requests.
 """
 import typing as t
 from collections import OrderedDict
+from collections.abc import Mapping
 from collections.abc import MutableMapping
-
-from .compat import Mapping
 
 
 class CaseInsensitiveDict(MutableMapping[str, str]):
