@@ -35,6 +35,9 @@ Release History
 
 - Remove ``requests.adapters.DEFAULT_POOL_TIMEOUT``, which was unused.
 
+- Basic Authentication deprecated non-string values and that support has been
+  completely removed as of this release.
+
 **Improvements**
 
 - Requests now relies on urllib3 for performing chunked requests.

@@ -23,6 +23,7 @@ from urllib.parse import quote
 from urllib.parse import unquote
 from urllib.parse import urlparse
 from urllib.parse import urlunparse
+from urllib.request import getproxies
 from urllib.request import getproxies_environment
 from urllib.request import parse_http_list as _parse_list_header
 from urllib.request import proxy_bypass

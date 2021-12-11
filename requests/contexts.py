@@ -15,7 +15,15 @@ _SENTINEL = object()
 _NOT_PROVIDED = object()
 
 
-@attr.define(frozen=True, kw_only=True)
+def _auth_converter(
+    v: t.Optional[t.Tuple[str, str]]
+) -> t.Optional[_auth.AuthBase]:
+    if isinstance(v, tuple) and len(v) == 2:
+        return _auth.HTTPBasicAuth(*v)
+    return v
+
+
+@attr.frozen(kw_only=True)
 class RequestContext:
     """Context that tracks the per request parameters."""
 
@@ -24,14 +32,14 @@ class RequestContext:
         validator=attr.validators.optional(
             attr.validators.instance_of(_auth.AuthBase)
         ),
+        converter=_auth_converter,
         default=None,
     )
     cert: t.Optional[t.Tuple[str, str]] = attr.field(default=None)
     cookies = attr.field(factory=cookies.RequestsCookieJar)
-    headers: structures.CaseInsensitiveDict = attr.field(
+    headers: t.MutableMapping[str, str] = attr.field(
         factory=structures.CaseInsensitiveDict,
-        converter=structures.CaseInsensitiveDict,
-        validator=attr.validators.instance_of(structures.CaseInsensitiveDict),
+        validator=attr.validators.instance_of(collections.abc.MutableMapping),
     )
     params: t.Dict[str, str] = attr.field(factory=dict)
     proxies: t.Dict[str, str] = attr.field(factory=dict)
@@ -61,7 +69,7 @@ class RequestContext:
         )
 
 
-@attr.mutable(kw_only=True)
+@attr.mutable(kw_only=True, getstate_setstate=True)
 class SessionContext:
     """Context used to contain the session parameters applied to each request."""
 
@@ -69,17 +77,19 @@ class SessionContext:
         validator=attr.validators.optional(
             attr.validators.instance_of(_auth.AuthBase)
         ),
+        converter=_auth_converter,
+        on_setattr=[attr.setters.convert],
         default=None,
     )
     cert: t.Optional[t.Tuple[str, str]] = attr.field(default=None)
     cookies = attr.field(factory=cookies.RequestsCookieJar)
-    headers: structures.CaseInsensitiveDict = attr.field(
+    headers: t.MutableMapping[str, str] = attr.field(
         factory=structures.CaseInsensitiveDict,
-        converter=structures.CaseInsensitiveDict,
-        validator=attr.validators.instance_of(structures.CaseInsensitiveDict),
+        validator=attr.validators.instance_of(collections.abc.MutableMapping),
     )
     hooks: t.Dict[str, t.Any] = attr.ib(factory=dict)
     max_redirects: int = attr.ib(default=models.DEFAULT_REDIRECT_LIMIT)
+    params: t.Dict[str, str] = attr.field(factory=dict)
     proxies: t.Dict[str, str] = attr.field(factory=dict)
     stream: bool = attr.field(default=False)
     trust_env: bool = attr.field(default=True)
@@ -99,7 +109,8 @@ class SessionContext:
 
             if merge:
                 return_val = session_default.copy()
-                return_val.update(request_val)
+                if request_val is not None:
+                    return_val.update(request_val)
                 return return_val
             return request_val
 

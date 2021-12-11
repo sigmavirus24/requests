@@ -6,6 +6,9 @@ except ImportError:
     cStringIO = None
 
 
+__all__ = ("StringIO", "cStringIO", "u")
+
+
 def u(s):
     if isinstance(s, str):
         return s

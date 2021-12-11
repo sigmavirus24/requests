@@ -79,3 +79,44 @@ class TestManager:
         assert mgr.adapters["https://"].closed is False
         mgr.close()
         assert mgr.adapters["https://"].closed is True
+
+    def test_transport_adapter_ordering(self):
+        mgr = adapters.Manager()
+        mgr.register("http://git", adapters.HTTPAdapter())
+        mgr.register("http://github", adapters.HTTPAdapter())
+        mgr.register("http://github.com", adapters.HTTPAdapter())
+        mgr.register("http://github.com/about/", adapters.HTTPAdapter())
+        order = [
+            "http://github.com/about/",
+            "http://github.com",
+            "http://github",
+            "http://git",
+            "https://",
+            "http://",
+        ]
+        assert order == mgr.prefixes
+        mgr.register("http://gittip", adapters.HTTPAdapter())
+        mgr.register("http://gittip.com", adapters.HTTPAdapter())
+        mgr.register("http://gittip.com/about/", adapters.HTTPAdapter())
+        order = [
+            "http://github.com/about/",
+            "http://gittip.com/about/",
+            "http://github.com",
+            "http://gittip.com",
+            "http://github",
+            "http://gittip",
+            "http://git",
+            "https://",
+            "http://",
+        ]
+        assert order == mgr.prefixes
+
+    def test_find_matching_mixed_case(self):
+        mixed_case_prefix = "hTtPs://eXamPle.CoM/MixEd_CAse_PREfix"
+        url_matching_prefix = mixed_case_prefix + "/full_url"
+
+        mgr = adapters.Manager()
+        my_adapter = adapters.HTTPAdapter()
+        mgr.register(mixed_case_prefix, my_adapter)
+
+        assert mgr.find(url_matching_prefix) is my_adapter

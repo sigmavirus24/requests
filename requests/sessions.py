@@ -122,18 +122,8 @@ class Session:
     """
 
     __attrs__ = [
-        "headers",
-        "cookies",
-        "auth",
-        "proxies",
-        "hooks",
-        "params",
-        "verify",
-        "cert",
+        "_ctx",
         "_adapter_mgr",
-        "stream",
-        "trust_env",
-        "max_redirects",
     ]
 
     headers = contexts.proxy_attribute()
@@ -310,7 +300,7 @@ class Session:
                 "timeout": timeout,
             }
         )
-        request_ctx.copy()
+        request_ctx.copy_with({})  # TODO: Use for real with Request object
         # Create the Request.
         req = Request(
             method=method.upper(),
@@ -534,7 +524,7 @@ class Session:
         """
         try:
             adapter = self._adapter_mgr.find(url)
-        except adapters._NoMatchingAdapterError:
+        except _adapters._NoMatchingAdapterError:
             # Nothing matches :-/
             raise InvalidScheme(
                 f"No connection adapters were found for {url!r}"
@@ -551,11 +541,11 @@ class Session:
         :raises ValueError:
             If the adapter does not inherit from requests.adapters.BaseAdapter
         """
-        self._adapters_mgr.register(prefix, adapter)
+        self._adapter_mgr.register(prefix, adapter)
 
     def unmount(self, prefix: str) -> None:
         """Removes a registered transport adapter at the given prefix."""
-        self._adapters_mgr.remove(prefix)
+        self._adapter_mgr.remove(prefix)
 
     def __getstate__(self):
         state = {attr: getattr(self, attr, None) for attr in self.__attrs__}
