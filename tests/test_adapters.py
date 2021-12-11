@@ -82,6 +82,8 @@ class TestManager:
 
     def test_transport_adapter_ordering(self):
         mgr = adapters.Manager()
+        mgr.register("http://", adapters.HTTPAdapter())
+        mgr.register("https://", adapters.HTTPAdapter())
         mgr.register("http://git", adapters.HTTPAdapter())
         mgr.register("http://github", adapters.HTTPAdapter())
         mgr.register("http://github.com", adapters.HTTPAdapter())
