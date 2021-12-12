@@ -7,6 +7,9 @@ from . import models
 from . import utils
 from .status_codes import codes
 
+if t.TYPE_CHECKING:
+    from . import contexts
+
 
 class Decision:
     """Represent the final decision around whether to redirect and where to.
@@ -73,31 +76,39 @@ class Decision:
 class RedirectDecisionEngine:
     """TODO Describe ME."""
 
-    def __init__(self, config: t.Dict[str, t.Any]):  # noqa: D107
+    def __init__(self, config: "contexts.SessionContext"):  # noqa: D107
         self._config = config
+
+    def __getstate__(self):
+        return {"_config": self._config}
+
+    def __setstate__(self, state):
+        self._config = state["_config"]
 
     @property
     def max_redirect_limit(self) -> int:
         """Describe how many redirects to follow at once."""
-        return self._config["max_redirects"]
+        return self._config.max_redirects
 
-    @property
-    def redirects_disabled(self) -> bool:
-        """Has the user allowed us to follow redirects."""
-        return not self._config["allow_redirects"]
-
-    def decision_for(self, response: models.Response) -> Decision:
+    def decision_for(
+        self, response: models.Response, allow_redirects: bool = True
+    ) -> Decision:
         """Make a decision about how to handle a response.
 
         :param response:
             The response that we're making a decision for
         :type response:
             :class:`~requests.models.Response`
+        :param allow_redirects:
+            Whether the user has allowed redirects
+        :type: allow_redirects:
+            bool
         :returns:
             How to handle this response
         :rtype:
             :class:`~requests.redirects.Decision`
         """
+        redirects_disabled = not allow_redirects
         if response.status_code not in models.REDIRECT_STATI:
             # It is not even a redirect, fall out early
             return Decision(
@@ -105,7 +116,7 @@ class RedirectDecisionEngine:
                 reason=Decision.Reason.NO_REDIRECT_DETECTED,
             )
 
-        if self.redirects_disabled:
+        if redirects_disabled:
             # The user doesn't want to follow redirects
             return Decision(
                 allow_redirect=False,

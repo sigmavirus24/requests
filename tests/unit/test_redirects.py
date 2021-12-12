@@ -4,15 +4,15 @@ import typing as t
 
 import pytest
 
+from requests import contexts
 from requests import models
 from requests import redirects
 
 
-def config(**kwargs) -> t.Dict[str, t.Any]:
-    """Create a config dictionary/obj for Decision Engine."""
-    kwargs.setdefault("allow_redirects", True)
+def ctx(**kwargs) -> contexts.SessionContext:
+    """Create a SessionContext for Decision Engine."""
     kwargs.setdefault("max_redirects", 5)
-    return kwargs
+    return contexts.SessionContext(**kwargs)
 
 
 @pytest.mark.parametrize(
@@ -23,7 +23,7 @@ def config(**kwargs) -> t.Dict[str, t.Any]:
 )
 def test_fails_early_on_a_non_redirect(status_code):
     """Verify we bail if it's not a 301, 302, 303, 307, or 308."""
-    eng = redirects.RedirectDecisionEngine(config=config())
+    eng = redirects.RedirectDecisionEngine(config=ctx())
     resp = models.Response()
     resp.status_code = status_code
 
@@ -34,7 +34,7 @@ def test_fails_early_on_a_non_redirect(status_code):
 
 def test_max_redirects():
     """Ensure we don't exceed the maximum number of redirect follows."""
-    eng = redirects.RedirectDecisionEngine(config=config(max_redirects=5))
+    eng = redirects.RedirectDecisionEngine(config=ctx(max_redirects=5))
     resp = models.Response()
     resp.status_code = 302
     resp.history = list(
@@ -48,13 +48,11 @@ def test_max_redirects():
 
 def test_disabled_redirects():
     """Ensure we don't follow redirects if the user doesn't want us to."""
-    eng = redirects.RedirectDecisionEngine(
-        config=config(allow_redirects=False)
-    )
+    eng = redirects.RedirectDecisionEngine(config=ctx())
     resp = models.Response()
     resp.status_code = 302
 
-    decision = eng.decision_for(resp)
+    decision = eng.decision_for(resp, allow_redirects=False)
     assert decision.allow_redirect is False
     assert decision.reason is redirects.Decision.Reason.USER_DISABLED_REDIRECTS
 
@@ -86,7 +84,7 @@ def test_disabled_redirects():
 )
 def test_redirecting_gets_correct_url(from_url, location_header, expected):
     """Verify we munge URLs correctly as part of redirection."""
-    eng = redirects.RedirectDecisionEngine(config=config(max_redirects=5))
+    eng = redirects.RedirectDecisionEngine(config=ctx(max_redirects=5))
     resp = models.Response()
     resp.request = models.PreparedRequest()
     resp.request.method = "GET"  # This doesn't matter as much
@@ -142,7 +140,7 @@ def test_redirecting_knows_when_to_strip_auth(
     from_url, location_header, should_strip_auth
 ):
     """Ensure we maintain the security posture we expect."""
-    eng = redirects.RedirectDecisionEngine(config=config(max_redirects=5))
+    eng = redirects.RedirectDecisionEngine(config=ctx(max_redirects=5))
     resp = models.Response()
     resp.request = models.PreparedRequest()
     resp.request.method = "GET"  # This doesn't matter as much

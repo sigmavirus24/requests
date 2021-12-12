@@ -53,6 +53,9 @@ from .utils import stream_decode_response_unicode
 from .utils import super_len
 from .utils import to_key_val_list
 
+if t.TYPE_CHECKING:
+    from . import contexts
+
 # Import encoding now, to avoid implicit import later.
 # Implicit import within threads may cause LookupError when standard library is in a ZIP,
 # such as in Embedded Python. See https://github.com/psf/requests/issues/3578.
@@ -222,6 +225,9 @@ class RequestHooksMixin:
             return False
 
 
+R = t.TypeVar("R", bound="R")
+
+
 class Request(RequestHooksMixin):
     """A user-created :class:`Request <Request>` object.
 
@@ -284,6 +290,10 @@ class Request(RequestHooksMixin):
         self.params = params
         self.auth = auth
         self.cookies = cookies
+
+    @classmethod
+    def from_context(cls: R, ctx: "contexts.RequestContext") -> R:
+        return cls()
 
     def __repr__(self):
         return f"<Request [{self.method}]>"

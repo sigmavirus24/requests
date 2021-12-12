@@ -124,6 +124,7 @@ class Session:
     __attrs__ = [
         "_ctx",
         "_adapter_mgr",
+        "_redirector",
     ]
 
     headers = contexts.proxy_attribute()
@@ -166,6 +167,7 @@ class Session:
         self._adapter_mgr = _adapters.Manager()
         self._adapter_mgr.register("https://", _adapters.HTTPAdapter())
         self._adapter_mgr.register("http://", _adapters.HTTPAdapter())
+        self._redirector = redirects.RedirectDecisionEngine(self._ctx)
 
     def __enter__(self):
         return self
@@ -572,13 +574,7 @@ class Session:
         and other arguments and continuously follow redirects until a stop
         condition is met.
         """
-        logic = redirects.RedirectDecisionEngine(
-            config={
-                "allow_redirects": True,
-                "max_redirects": self.max_redirects,
-            }
-        )
-        decision = logic.decision_for(resp)
+        decision = self._redirector.decision_for(resp, True)
 
         history = []
         while decision.was_a_redirect():
@@ -640,7 +636,7 @@ class Session:
             # extract redirect url, if any, for the next loop
             yield resp
 
-            decision = logic.decision_for(resp)
+            decision = self._redirector.decision_for(resp, True)
             req = next_request
 
     def rebuild_auth(
