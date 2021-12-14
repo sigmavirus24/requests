@@ -9,7 +9,7 @@ Release History
 - Python 2.7 is no longer supported, as a result we have removed dependencies
   for socks on Python 2.7 and removed the extra to use chardet on Python 3
 
-- Remove the ``__bool__`` and ``__nonzero__`` methods from a ``Response``
+- Remove the `__bool__` and `__nonzero__` methods from a `Response`
   object. This resolves issue #2002.
 
 - Remove conditional usage of `simplejson` module. Requests now solely relies
@@ -19,21 +19,21 @@ Release History
   MissingSchema exceptions. Renamed to InvalidScheme and MissingScheme
   respectively. (#4495)
 
-- Remove ``yield_requests`` from ``Session.resolve_redirects``. It was a poor
+- Remove `yield_requests` from `Session.resolve_redirects`. It was a poor
   API with little thought applied to the design.
 
-- Remove ``Response.next`` attribute
+- Remove `Response.next` attribute
 
-- Remove ``SessionRedirectMixin`` as it provides no purpose
+- Remove `SessionRedirectMixin` as it provides no purpose
 
-- When no ``timeout`` is specified for a request, Requests now uses Python's
-  default socket timeout (from ``socket.getdefaulttimeout()``) rather than
+- When no `timeout` is specified for a request, Requests now uses Python's
+  default socket timeout (from `socket.getdefaulttimeout()`) rather than
   no timeout.
 
-- urllib3's ``Timeout`` is now imported into ``requests.adapters`` as ``Timeout``
-  instead of ``TimeoutSauce``.
+- urllib3's `Timeout` is now imported into `requests.adapters` as `Timeout`
+  instead of `TimeoutSauce`.
 
-- Remove ``requests.adapters.DEFAULT_POOL_TIMEOUT``, which was unused.
+- Remove `requests.adapters.DEFAULT_POOL_TIMEOUT`, which was unused.
 
 - Basic Authentication deprecated non-string values and that support has been
   completely removed as of this release.
@@ -41,6 +41,10 @@ Release History
 **Improvements**
 
 - Requests now relies on urllib3 for performing chunked requests.
+
+- Sessions now have a `generate_redirect_requests` method which will allow
+  users to control sending a request while relying on a Session to generate
+  the requests to follow redirects.
 
 **Bug Fixes**
 

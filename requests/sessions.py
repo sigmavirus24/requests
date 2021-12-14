@@ -557,31 +557,52 @@ class Session:
         for attr, value in state.items():
             setattr(self, attr, value)
 
-    def resolve_redirects(
+    def generate_redirect_requests(
         self,
-        resp: "Response",
-        req: PreparedRequest,
+        *,
+        original_response: "Response",
+        original_request: PreparedRequest,
         stream: bool = False,
         timeout: t.Optional[t.Union[float, t.Tuple[float, float]]] = None,
         verify: t.Union[bool, str] = True,
         cert: t.Optional[str] = None,
         proxies: t.Optional[t.Dict[str, str]] = None,
         **adapter_kwargs,
-    ) -> t.Generator["Response", None, None]:
-        """Generate responses as part of processing redirects.
+    ) -> t.Generator[PreparedRequest, "Response", None]:
+        """Generate prepared requests for handling redirects.
 
-        This method will take the initial response, initial prepared request,
-        and other arguments and continuously follow redirects until a stop
-        condition is met.
+        This method will yield the next PreparedRequest in the chain provided
+        the response is sent to the generator.
+
+        Example:
+
+        .. code-block::
+
+            response = s.send(prepped_request, **options)
+            try:
+                redirect_requests = s.generate_redirect_requests(
+                    response,
+                    request,
+                    **options
+                )
+                request = next(redirect_requests)
+                while True:
+                    response = s.send(request, **options)
+                    request = redirect_requests.send(response)
+            except StopIteration:
+                pass
+            except requests.exceptions.TooManyRedirects:
+                pass
         """
+        resp = original_response
+        req = original_request
         decision = self._redirector.decision_for(resp, True)
+        redirects_seen = 0
 
-        history = []
         while decision.was_a_redirect():
             next_request = req.copy()
 
             consume_response(resp)
-            history.append(resp)
 
             if decision.reason is decision.Reason.TOO_MANY_REDIRECTS:
                 raise TooManyRedirects(
@@ -619,25 +640,68 @@ class Session:
             if rewindable:
                 rewind_body(next_request)
 
-            resp = self.send(
-                next_request,
-                stream=stream,
-                timeout=timeout,
-                verify=verify,
-                cert=cert,
-                proxies=proxies,
-                allow_redirects=False,
-                **adapter_kwargs,
+            resp = yield next_request
+            redirects_seen += 1
+
+            decision = self._redirector.decision_for(
+                resp, True, redirects_seen=redirects_seen
             )
-
-            extract_cookies_to_jar(self.cookies, next_request, resp.raw)
-            resp.history = history[:]
-
-            # extract redirect url, if any, for the next loop
-            yield resp
-
-            decision = self._redirector.decision_for(resp, True)
             req = next_request
+
+    def resolve_redirects(
+        self,
+        resp: "Response",
+        req: PreparedRequest,
+        stream: bool = False,
+        timeout: t.Optional[t.Union[float, t.Tuple[float, float]]] = None,
+        verify: t.Union[bool, str] = True,
+        cert: t.Optional[str] = None,
+        proxies: t.Optional[t.Dict[str, str]] = None,
+        **adapter_kwargs,
+    ) -> t.Generator["Response", None, None]:
+        """Generate responses as part of processing redirects.
+
+        This method will take the initial response, initial prepared request,
+        and other arguments and continuously follow redirects until a stop
+        condition is met.
+        """
+        request_gen = self.generate_redirect_requests(
+            original_response=resp,
+            original_request=req,
+            stream=stream,
+            timeout=timeout,
+            verify=verify,
+            cert=cert,
+            proxies=proxies,
+            **adapter_kwargs,
+        )
+        history = []
+        try:
+            next_request = next(request_gen)
+            while True:
+                history.append(resp)
+                resp = self.send(
+                    next_request,
+                    stream=stream,
+                    timeout=timeout,
+                    verify=verify,
+                    cert=cert,
+                    proxies=proxies,
+                    allow_redirects=False,
+                    **adapter_kwargs,
+                )
+
+                extract_cookies_to_jar(self.cookies, next_request, resp.raw)
+                resp.history = history[:]
+
+                # extract redirect url, if any, for the next loop
+                yield resp
+
+                next_request = request_gen.send(resp)
+        except StopIteration:
+            return
+        except TooManyRedirects:
+            raise
 
     def rebuild_auth(
         self,

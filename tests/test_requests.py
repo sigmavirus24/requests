@@ -2381,7 +2381,7 @@ def test_requests_are_updated_each_time(httpbin):
         "cert": None,
         "timeout": None,
         "allow_redirects": False,
-        "proxies": {},
+        "proxies": None,
     }
     for response in redirect_generator:
         assert response.request.method == "GET"

@@ -40,7 +40,7 @@ class Decision:
         *,
         allow_redirect: bool,
         reason: t.Optional[Reason] = None,
-        **kwargs
+        **kwargs,
     ):
         self.allow_redirect = allow_redirect
         self.reason = reason
@@ -74,7 +74,15 @@ class Decision:
 
 # TODO(sigmavirus24): Better name please
 class RedirectDecisionEngine:
-    """TODO Describe ME."""
+    """Handle managing logic and decisions around redirects.
+
+    In prior versions of Requests, this logic was built into the Session
+    object and almost impossible to extend or override.
+
+    This takes a SessionContext to understand how a session has been
+    configured and returns parameters for the next request while deciding when
+    to allow a redirect.
+    """
 
     def __init__(self, config: "contexts.SessionContext"):  # noqa: D107
         self._config = config
@@ -91,7 +99,11 @@ class RedirectDecisionEngine:
         return self._config.max_redirects
 
     def decision_for(
-        self, response: models.Response, allow_redirects: bool = True
+        self,
+        response: models.Response,
+        allow_redirects: bool = True,
+        *,
+        redirects_seen: t.Optional[int] = None,
     ) -> Decision:
         """Make a decision about how to handle a response.
 
@@ -103,6 +115,11 @@ class RedirectDecisionEngine:
             Whether the user has allowed redirects
         :type: allow_redirects:
             bool
+        :param redirects_seen:
+            Used to influence the decision if a Response's history isn't
+            accurate
+        :type redirects_seen:
+            int
         :returns:
             How to handle this response
         :rtype:
@@ -122,7 +139,10 @@ class RedirectDecisionEngine:
                 allow_redirect=False,
                 reason=Decision.Reason.USER_DISABLED_REDIRECTS,
             )
-        if len(response.history) >= self.max_redirect_limit:
+        if (
+            redirects_seen is not None
+            and redirects_seen >= self.max_redirect_limit
+        ) or (len(response.history) >= self.max_redirect_limit):
             # We've already followed the maximum number of redirects we want
             # to follow
             return Decision(
