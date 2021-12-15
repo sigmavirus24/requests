@@ -38,6 +38,10 @@ Release History
 - Basic Authentication deprecated non-string values and that support has been
   completely removed as of this release.
 
+- `Response.apparent_encoding` has been removed.
+
+- Remove `requests.packages` set of alises for urllib3 and other dependencies
+
 **Improvements**
 
 - Requests now relies on urllib3 for performing chunked requests.
