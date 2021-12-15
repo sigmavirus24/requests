@@ -42,6 +42,12 @@ Release History
 
 - Remove `requests.packages` set of alises for urllib3 and other dependencies
 
+- Remove dependence upon `chardet` or `charset-normalizer`. Instead, users can
+  pass callable's that match a defined protocol in to `detect_encoding` or
+  `detect_and_store_encoding`. This eliminates any confusion by lawyers over
+  their own licensing guidelines and prevents bug reports for misdetected
+  character sets.
+
 **Improvements**
 
 - Requests now relies on urllib3 for performing chunked requests.

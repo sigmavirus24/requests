@@ -10,12 +10,11 @@ here = os.path.abspath(os.path.dirname(__file__))
 packages = ["requests"]
 
 requires = [
-    'charset_normalizer~=2.0.0; python_version >= "3"',
-    'idna>=2.5,<3; python_version < "3"',
-    'idna>=2.5,<4; python_version >= "3"',
+    'idna>=3.0; python_version >= "3"',
     "urllib3>=1.21.1,<1.27",
     "certifi>=2017.4.17",
     "attrs>=21.2.0",
+    "typing_extensions>=4.0.1",
 ]
 
 about = {}

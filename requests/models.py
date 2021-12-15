@@ -55,6 +55,7 @@ from .utils import to_key_val_list
 
 if t.TYPE_CHECKING:
     from . import contexts
+    from . import interfaces
 
 # Import encoding now, to avoid implicit import later.
 # Implicit import within threads may cause LookupError when standard library is in a ZIP,
@@ -686,6 +687,7 @@ class Response:
 
         #: Encoding to decode with when accessing r.text.
         self.encoding = None
+        self.apparent_encoding = None
 
         #: A list of :class:`Response <Response>` objects from
         #: the history of the Request. Any redirect responses will end
@@ -771,10 +773,40 @@ class Response:
             codes.permanent_redirect,
         )
 
-    @property
-    def apparent_encoding(self):
-        """The apparent encoding, provided by the charset_normalizer or chardet libraries."""
-        return chardet.detect(self.content)["encoding"]
+    def detect_encoding(self, detector: "interfaces.CharacterDetector") -> str:
+        """Run character set detection for this response.
+
+        This allows the user to bring their own character set encoding
+        detector and pass that to the library. One could use the battle-tested
+        and reliable ``chardet`` or ``charset-normalizer`` or any other
+        implementation they like.
+
+        :param detector:
+            A callable that returns the specified dictionary
+        :returns:
+            The detected character set encoding
+        """
+        return detector(self.content)["encoding"]
+
+    def detect_and_override_encoding(
+        self, detector: "interfaces.CharacterDetector"
+    ) -> str:
+        """Run character set detection for this response and store result.
+
+        This sets the ``apparent_encoding`` attribute.
+
+        This allows the user to bring their own character set encoding
+        detector and pass that to the library. One could use the battle-tested
+        and reliable ``chardet`` or ``charset-normalizer`` or any other
+        implementation they like.
+
+        :param detector:
+            A callable that returns the specified dictionary
+        :returns:
+            The detected character set encoding
+        """
+        self.apparent_encoding = self.detect_encoding(detector)
+        return self.apparent_encoding
 
     def iter_content(self, chunk_size=1, decode_unicode=False):
         """Iterates over the response data.  When stream=True is set on the
