@@ -30,17 +30,69 @@ Basic GET usage:
      ...
    }
 
-The other HTTP methods are supported - see `requests.api`. Full documentation
+The other HTTP methods are supported - see :mod:`requests.api`. Full documentation
 is at <https://requests.readthedocs.io>.
 
 :copyright: (c) 2017 by Kenneth Reitz.
 :license: Apache 2.0, see LICENSE for more details.
 """
+import logging
 import warnings
 
-import urllib3
+import urllib3.exceptions
 
+from . import utils  # noqa: F401
+from .__version__ import __author__  # noqa: F401
+from .__version__ import __author_email__  # noqa: F401
+from .__version__ import __build__  # noqa: F401
+from .__version__ import __cake__  # noqa: F401
+from .__version__ import __copyright__  # noqa: F401
+from .__version__ import __description__  # noqa: F401
+from .__version__ import __license__  # noqa: F401
+from .__version__ import __title__  # noqa: F401
+from .__version__ import __url__  # noqa: F401
+from .__version__ import __version__  # noqa: F401
+from .api import delete
+from .api import get
+from .api import head
+from .api import options
+from .api import patch
+from .api import post
+from .api import put
+from .api import request
+from .exceptions import ConnectionError  # noqa: F401
+from .exceptions import ConnectTimeout  # noqa: F401
+from .exceptions import FileModeWarning
+from .exceptions import HTTPError  # noqa: F401
+from .exceptions import ReadTimeout  # noqa: F401
+from .exceptions import RequestException  # noqa: F401
 from .exceptions import RequestsDependencyWarning
+from .exceptions import Timeout  # noqa: F401
+from .exceptions import TooManyRedirects  # noqa: F401
+from .exceptions import URLRequired  # noqa: F401
+from .models import PreparedRequest
+from .models import Request
+from .models import Response
+from .sessions import Session
+from .sessions import session
+from .status_codes import codes
+
+__all__ = (
+    "Request",
+    "Response",
+    "PreparedRequest",
+    "request",
+    "get",
+    "head",
+    "post",
+    "patch",
+    "put",
+    "delete",
+    "options",
+    "session",
+    "Session",
+    "codes",
+)
 
 
 def check_compatibility(urllib3_version):
@@ -62,18 +114,6 @@ def check_compatibility(urllib3_version):
     assert minor <= 26
 
 
-def _check_cryptography(cryptography_version):
-    # cryptography < 1.3.4
-    try:
-        cryptography_version = list(map(int, cryptography_version.split(".")))
-    except ValueError:
-        return
-
-    if cryptography_version < [1, 3, 4]:
-        warning = f"Old version of cryptography ({cryptography_version}) may cause slowdown."
-        warnings.warn(warning, RequestsDependencyWarning)
-
-
 # Check imported dependencies for compatibility.
 try:
     check_compatibility(urllib3.__version__)
@@ -83,58 +123,10 @@ except (AssertionError, ValueError):
         RequestsDependencyWarning,
     )
 
-# Attempt to enable urllib3's fallback for SNI support
-# if the standard library doesn't support SNI or the
-# 'ssl' library isn't available.
-try:
-    try:
-        import ssl
-    except ImportError:
-        ssl = None
-
-    if not getattr(ssl, "HAS_SNI", False):
-        from urllib3.contrib import pyopenssl
-
-        pyopenssl.inject_into_urllib3()
-
-        # Check cryptography version
-        from cryptography import __version__ as cryptography_version
-
-        _check_cryptography(cryptography_version)
-except ImportError:
-    pass
-
-# urllib3's DependencyWarnings should be silenced.
-from urllib3.exceptions import DependencyWarning
-
-warnings.simplefilter("ignore", DependencyWarning)
-
-from .__version__ import __title__, __description__, __url__, __version__
-from .__version__ import __build__, __author__, __author_email__, __license__
-from .__version__ import __copyright__, __cake__
-
-from . import utils
-from .models import Request, Response, PreparedRequest
-from .api import request, get, head, post, patch, put, delete, options
-from .sessions import session, Session
-from .status_codes import codes
-from .exceptions import (
-    RequestException,
-    Timeout,
-    URLRequired,
-    TooManyRedirects,
-    HTTPError,
-    ConnectionError,
-    FileModeWarning,
-    ConnectTimeout,
-    ReadTimeout,
-)
-
 # Set default logging handler to avoid "No handler found" warnings.
-import logging
-from logging import NullHandler
+logging.getLogger(__name__).addHandler(logging.NullHandler())
 
-logging.getLogger(__name__).addHandler(NullHandler())
-
+# Turn off urllib3's DependencyWarning
+warnings.simplefilter("ignore", urllib3.exceptions.DependencyWarning)
 # FileModeWarnings go off per the default.
 warnings.simplefilter("default", FileModeWarning, append=True)
