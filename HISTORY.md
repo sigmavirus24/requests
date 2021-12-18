@@ -48,6 +48,8 @@ Release History
   their own licensing guidelines and prevents bug reports for misdetected
   character sets.
 
+- Remove `requests.compat`
+
 **Improvements**
 
 - Requests now relies on urllib3 for performing chunked requests.
