@@ -42,20 +42,8 @@ import urllib3
 
 from .exceptions import RequestsDependencyWarning
 
-try:
-    from charset_normalizer import __version__ as charset_normalizer_version
-except ImportError:
-    charset_normalizer_version = None
 
-try:
-    from chardet import __version__ as chardet_version
-except ImportError:
-    chardet_version = None
-
-
-def check_compatibility(
-    urllib3_version, chardet_version, charset_normalizer_version
-):
+def check_compatibility(urllib3_version):
     urllib3_version = urllib3_version.split(".")
     assert urllib3_version != [
         "dev"
@@ -73,22 +61,6 @@ def check_compatibility(
     assert minor >= 21
     assert minor <= 26
 
-    # Check charset_normalizer for compatibility.
-    if chardet_version:
-        major, minor, patch = chardet_version.split(".")[:3]
-        major, minor, patch = int(major), int(minor), int(patch)
-        # chardet_version >= 3.0.2, < 5.0.0
-        assert (3, 0, 2) <= (major, minor, patch) < (5, 0, 0)
-    elif charset_normalizer_version:
-        major, minor, patch = charset_normalizer_version.split(".")[:3]
-        major, minor, patch = int(major), int(minor), int(patch)
-        # charset_normalizer >= 2.0.0 < 3.0.0
-        assert (2, 0, 0) <= (major, minor, patch) < (3, 0, 0)
-    else:
-        raise Exception(
-            "You need either charset_normalizer or chardet installed"
-        )
-
 
 def _check_cryptography(cryptography_version):
     # cryptography < 1.3.4
@@ -104,14 +76,10 @@ def _check_cryptography(cryptography_version):
 
 # Check imported dependencies for compatibility.
 try:
-    check_compatibility(
-        urllib3.__version__, chardet_version, charset_normalizer_version
-    )
+    check_compatibility(urllib3.__version__)
 except (AssertionError, ValueError):
     warnings.warn(
-        f"urllib3 ({urllib3.__version__}) or chardet ({chardet_version})"
-        f"/charset_normalizer ({charset_normalizer_version}) doesn't match a "
-        f"supported version!",
+        f"urllib3 ({urllib3.__version__}) doesn't match a supported version!",
         RequestsDependencyWarning,
     )
 
